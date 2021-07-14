@@ -8,7 +8,9 @@ K_DOWN,
 K_LEFT,
 K_RIGHT,
 K_ESCAPE,
-KEYDOWN,QUIT
+KEYDOWN,
+K_SPACE,
+QUIT
 )
 
 pygame.init()
@@ -139,17 +141,37 @@ class Explosion(pygame.sprite.Sprite):
 			self.kill()
 
 
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self,x,y):
+
+        super(Bullet,self).__init__()
+        self.surface = pygame.image.load("/home/salih/Desktop/game/bullet.png").convert()
+        self.surface.set_colorkey((255, 255, 255), RLEACCEL)
+
+        self.rect = self.surface.get_rect(center=(x,y))
+        self.speed = 2
+
+    def update(self):
+
+        self.rect.move_ip(self.speed, 0)
+
+        if self.rect.right > screen_w:
+            print("Bullet killed")
+            self.kill()
+
+
 
 player = Player()
 enemies = pygame.sprite.Group()
 clouds = pygame.sprite.Group()
 explosion_group = pygame.sprite.Group()
+bullet_group = pygame.sprite.Group()
 
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
 
-# Events in the game:
+# Events in the game: 
 ADDENEMY = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDENEMY, 1000)
 
@@ -160,15 +182,23 @@ pygame.time.set_timer(ADDCLOUD, 1000)
 clock = pygame.time.Clock()
 
 
-exp_frame = 0
 
-while running_game or exp_frame < 5:
+
+while running_game :
 
     for event in pygame.event.get():
         if event.type == KEYDOWN:
             if event.key == K_ESCAPE:
                 running_game = False
-    
+
+            elif event.key == K_SPACE:
+                print( "Space key pressed!")
+                new_bullet = Bullet(player.rect.centerx,player.rect.centery)
+                bullet_group.add(new_bullet)
+                all_sprites.add(new_bullet )
+                bullet_group.update()
+
+
         elif event.type ==  QUIT:
 
             running_game = False
@@ -181,6 +211,8 @@ while running_game or exp_frame < 5:
             new_enemy = Enemy()
             enemies.add(new_enemy)
             all_sprites.add(new_enemy)
+
+
         elif event.type == ADDCLOUD:
 
             # Create the new clouds and add it to sprite groups
@@ -195,6 +227,7 @@ while running_game or exp_frame < 5:
     player.update(pressed_keys)
     enemies.update()
     clouds.update()
+    bullet_group.update()
     screen.fill((39, 158, 232))
     #screen.fill((0, 0, 0))
 
@@ -209,23 +242,33 @@ while running_game or exp_frame < 5:
 
     # player hits the rockets:
     if pygame.sprite.spritecollideany(player, enemies):
-        global exp_frame
+        
         new_explosion = Explosion(player.rect.centerx,player.rect.centery) 
         explosion_group.add(new_explosion)
         explosion_group.draw(screen)
-        exp_frame = exp_frame + 1
-        print(str(exp_frame) + "Explosion done !")
-        if(exp_frame == 5):
-            player.kill()
-            print(" Player will be killed !")
+        
+        
+        player.kill()
+        print(" Player killed !")
         
         
         running_game = False
+    
+    for bullet in bullet_group:
+        if pygame.sprite.spritecollideany(bullet, enemies):
+            # The bullet (fired by player) hits the rocket:
+            new_explosion = Explosion(bullet.rect.centerx,bullet.rect.centery) 
+            explosion_group.add(new_explosion)
+            explosion_group.draw(screen)
+            bullet.kill()
+        
 
+    
+        
+        
 
     pygame.display.flip()
 
-exp_frame = 0
 
 time.sleep(1)
 
